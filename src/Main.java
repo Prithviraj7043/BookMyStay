@@ -2,14 +2,13 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * UseCase3InventorySetup
+ * UseCase4RoomSearch
  *
- * Demonstrates centralized room inventory management using HashMap.
- * Room characteristics remain part of the Room domain model while
- * availability is managed by the RoomInventory component.
+ * Demonstrates read-only room search using centralized inventory.
+ * Guests can view available rooms without modifying system state.
  *
  * @author YourName
- * @version 3.1
+ * @version 4.1
  */
 public class Main {
 
@@ -17,80 +16,128 @@ public class Main {
 
         System.out.println("=====================================");
         System.out.println("          Book My Stay App");
-        System.out.println("            Version 3.1");
+        System.out.println("            Version 4.1");
         System.out.println("=====================================");
 
         // Initialize inventory
         RoomInventory inventory = new RoomInventory();
-
-        // Register room types with initial availability
         inventory.addRoomType("Single Room", 10);
-        inventory.addRoomType("Double Room", 7);
-        inventory.addRoomType("Suite Room", 3);
+        inventory.addRoomType("Double Room", 5);
+        inventory.addRoomType("Suite Room", 0); // unavailable example
 
-        // Display current inventory
-        System.out.println("\n--- Current Room Inventory ---");
-        inventory.displayInventory();
+        // Create room domain objects
+        Map<String, Room> rooms = new HashMap<>();
+        rooms.put("Single Room", new SingleRoom());
+        rooms.put("Double Room", new DoubleRoom());
+        rooms.put("Suite Room", new SuiteRoom());
 
-        // Example update
-        System.out.println("\nUpdating availability after a booking...");
-        inventory.updateAvailability("Single Room", 9);
-
-        // Display updated inventory
-        System.out.println("\n--- Updated Room Inventory ---");
-        inventory.displayInventory();
+        // Perform room search
+        RoomSearchService searchService = new RoomSearchService();
+        searchService.searchAvailableRooms(inventory, rooms);
     }
 }
 
 /**
- * Manages room availability across the system.
- * Acts as the centralized inventory component.
+ * Search service responsible for read-only access to room inventory.
  *
- * @version 3.0
+ * @version 4.0
+ */
+class RoomSearchService {
+
+    public void searchAvailableRooms(RoomInventory inventory, Map<String, Room> rooms) {
+
+        System.out.println("\n--- Available Rooms ---\n");
+
+        for (String roomType : rooms.keySet()) {
+
+            int availability = inventory.getAvailability(roomType);
+
+            // Filter unavailable rooms
+            if (availability > 0) {
+
+                Room room = rooms.get(roomType);
+                room.displayRoomDetails();
+
+                System.out.println("Available Rooms : " + availability);
+                System.out.println("-----------------------------------");
+            }
+        }
+    }
+}
+
+/**
+ * Centralized inventory manager.
+ *
+ * @version 4.0
  */
 class RoomInventory {
 
     private Map<String, Integer> inventory;
 
-    /**
-     * Constructor initializes the inventory structure.
-     */
     public RoomInventory() {
         inventory = new HashMap<>();
     }
 
-    /**
-     * Registers a new room type with its availability.
-     */
     public void addRoomType(String roomType, int count) {
         inventory.put(roomType, count);
     }
 
-    /**
-     * Retrieves availability for a specific room type.
-     */
     public int getAvailability(String roomType) {
         return inventory.getOrDefault(roomType, 0);
     }
+}
 
-    /**
-     * Updates availability for a room type.
-     */
-    public void updateAvailability(String roomType, int newCount) {
-        if (inventory.containsKey(roomType)) {
-            inventory.put(roomType, newCount);
-        } else {
-            System.out.println("Room type not found: " + roomType);
-        }
+/**
+ * Abstract Room domain model.
+ */
+abstract class Room {
+
+    private String roomType;
+    private int beds;
+    private double size;
+    private double price;
+
+    public Room(String roomType, int beds, double size, double price) {
+        this.roomType = roomType;
+        this.beds = beds;
+        this.size = size;
+        this.price = price;
     }
 
-    /**
-     * Displays the entire inventory state.
-     */
-    public void displayInventory() {
-        for (Map.Entry<String, Integer> entry : inventory.entrySet()) {
-            System.out.println("Room Type: " + entry.getKey() +
-                    " | Available Rooms: " + entry.getValue());
-        }
+    public void displayRoomDetails() {
+        System.out.println("Room Type : " + roomType);
+        System.out.println("Beds      : " + beds);
+        System.out.println("Size      : " + size + " sq.ft");
+        System.out.println("Price     : $" + price + " per night");
+    }
+}
+
+/**
+ * Single Room implementation.
+ */
+class SingleRoom extends Room {
+
+    public SingleRoom() {
+        super("Single Room", 1, 200, 100);
+    }
+}
+
+/**
+ * Double Room implementation.
+ */
+class DoubleRoom extends Room {
+
+    public DoubleRoom() {
+        super("Double Room", 2, 350, 180);
+    }
+}
+
+/**
+ * Suite Room implementation.
+ */
+class SuiteRoom extends Room {
+
+    public SuiteRoom() {
+        super("Suite Room", 3, 600, 350);
     }
 }
